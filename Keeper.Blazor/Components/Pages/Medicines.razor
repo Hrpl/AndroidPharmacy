@@ -1,0 +1,86 @@
+﻿@page "/"
+@page "/m"
+
+@using System.Net.Http
+@using System.Net.Http.Json
+@using Keeper.Domen.ModelsPharmacy
+
+@rendermode RenderMode.InteractiveServer
+
+<PageTitle>Лекарства</PageTitle>
+
+<div class="row">
+
+    <h3 class="col-12 text-center">Список всех лекарст</h3>
+
+    <div class="row">
+        <label class="col-2 m-2 text-end">Склад</label>
+        <input class="col-4 m-2" type="text" @bind="WarehouseId" />
+        <button @onclick="FilterByWarehouse" class="col-4 m-2">Фильтровать</button>
+    </div>
+
+    <div class="row justify-content-center">
+        <label class="col-2 m-2 text-end">Название лекарства</label>
+        <input class="col-4 m-2" type="text" @bind="name" @bind:after="FilterByName" />
+        
+        
+    </div>
+    @if (oneMedicines)
+    {
+        <p>Количество лекарства на всех складах: @sumQuantity</p>
+    }
+    <table class="row">
+        @if(medicines != null)
+        {
+            @foreach (var item in medicines)
+            {
+                <tr class="row my-3">
+                    <td class="col-12 "><img src="@item.Image" height="100px" width="100px" /></td>
+                    <td class="col-12 border-1">Id: @item.Id</td>
+                    <td class="col-12 border-1">Название: @item.Name</td>
+                    <td class="col-12 border-1">Производитель: @item.Manufacturer</td>
+                    <td class="col-12 border-1">Цена: @item.Price</td>
+                    <td class="col-12 border-1">В наличии: @item.StockQuantity</td>
+                    <td class="col-12 border-1">Необходимое наличие: @item.OptimalQuantity</td>
+                    <td class="col-12 border-1">Срок годности до: @item.ExpirationDate</td>
+                    <td class="col-12 border-1">Склад: @item.WarehouseId</td>
+                    <td class="col-12 border-1">Накладная: @item.InvoiceId</td>
+                </tr>
+            }
+        }
+        
+    </table>
+
+    <button @onclick="Find" class="col-6 offset-3 my-5">Найти</button>
+</div>
+
+@code {
+    HttpClient httpClient = new();
+    List<Medicine>? medicines = new();
+
+    int WarehouseId, sumQuantity;
+    string name;
+    bool oneMedicines = false;
+
+    public async Task Find()
+    {
+        oneMedicines = false;
+        medicines = await httpClient.GetFromJsonAsync<List<Medicine>>("http://localhost:5213/api/Pharmacy/Medicines?WarehouseId=0");
+    }
+
+    public async Task FilterByWarehouse()
+    {
+        oneMedicines = false;
+        medicines = await httpClient.GetFromJsonAsync<List<Medicine>>($"http://localhost:5213/api/Pharmacy/Medicines?WarehouseId={WarehouseId}");
+    }
+
+    public async Task FilterByName()
+    {
+        sumQuantity = 0;
+        oneMedicines = true;
+
+        medicines = await httpClient.GetFromJsonAsync<List<Medicine>?>($"http://localhost:5213/api/Pharmacy/Medicines/Contain?name={name}");
+
+        foreach (var item in medicines) sumQuantity += item.StockQuantity;
+    }
+}
